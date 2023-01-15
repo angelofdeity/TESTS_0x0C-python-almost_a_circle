@@ -1,99 +1,82 @@
-#!/usr/bin/python3
+import unittest
 from models.base import Base
 from models.rectangle import Rectangle
 import json
-import unittest
+from models.square import Square
 
+class TestBaseClass(unittest.TestCase):
+    def test_is_an_instance_of_base(self):
+        test_n = Base()
+        self.assertIsInstance(test_n, Base)
 
-class TestBase(unittest.TestCase):
+    def test_base_id(self):
+        test_n = Base(2)
+        self.assertEqual(test_n.id, 2)
+        temp = Base()
+        another = Base()
+        self.assertEqual(another.id, 2)
 
-    def test_init_without_id(self):
-        print('test_init_without_id')
-        b1 = Base()
-        b2 = Base()
-        self.assertEqual(b1.id, 2)
-        self.assertEqual(b2.id, 3)
+    def test_wrong_id(self):
+        test_n = Base("3")
+        self.assertRaises(ValueError)
 
-    def test_init_with_id(self):
-        print('test_init_with_id')
-        b = Base(3)
-        self.assertEqual(b.id, 3)
+    def test_wrong_id_2(self):
+        test_n = Base([3])
+        self.assertRaises(ValueError)
 
-    def test_init_negative_id(self):
-        print('test_init_negative_id')
-        b = Base(-2)
-        self.assertEqual(b.id, -2)
+class TestToJsonStringDict(unittest.TestCase):
+    def test_to_json_string_valid_input(self):
+        dic = [{1: 3, 2: 4}, {5: 6}]
+        self.assertIsInstance(Base.to_json_string(dic), str)
+        self.assertEqual(Base.to_json_string(dic), json.dumps(dic))
+        self.assertEqual(Base.to_json_string(dic), '[{"1": 3, "2": 4}, {"5": 6}]')
 
-    def test_init_with_string(self):
-        print('test_init_with_string')
-        b = Base('a')
-        self.assertEqual(b.id, 'a')
+    def test_to_json_string_invalid_input(self):
+        dic_2 = None
+        self.assertEqual(Base.to_json_string(dic_2), "[]")
 
-    def test_init_with_None(self):
-        print('test_init_with_None')
-        b = Base(None)
-        self.assertEqual(b.id, 1)
+    def test_to_json_string_empty_input(self):
+        dic = []
+        self.assertEqual(Base.to_json_string(dic), "[]")
 
-
-class TestToJsonString(unittest.TestCase):
-    def test_valid_input(self):
-        print('test_valid_input')
-        list_dictionaries = [{'x': 1, 'y': 2}, {'a': 3, 'b': 4}]
-        expected_output = json.dumps(list_dictionaries)
-        self.assertEqual(Base.to_json_string(
-            list_dictionaries), expected_output)
-
-    def test_empty_input(self):
-        print('test_empty_input')
-        list_dictionaries = []
-        expected_output = '"[]"'
-        self.assertEqual(Base.to_json_string(
-            list_dictionaries), expected_output)
-
-    def test_none_input(self):
-        print('test_None_input')
-        list_dictionaries = None
-        expected_output = '"[]"'
-        self.assertEqual(Base.to_json_string(
-            list_dictionaries), expected_output)
 
 
 class TestFromJsonString(unittest.TestCase):
     def test_valid_input(self):
-        print('test_valid_input')
-        list_input = [
-            {'id': 89, 'width': 10, 'height': 4},
-            {'id': 7, 'width': 1, 'height': 7}
-        ]
-        json_string = json.dumps(list_input)
-        expected_output = [{'height': 4, 'width': 10, 'id': 89}, {
-            'height': 7, 'width': 1, 'id': 7}]
-        self.assertEqual(Base.from_json_string(json_string), expected_output)
+        core = [{"am": 3}]
+        test_subject = json.dumps(core)
+        self.assertEqual(Base.from_json_string(test_subject), [{'am': 3}])
+        self.assertEqual(Base.from_json_string(test_subject), json.loads(test_subject))
 
-    def test_empty_input(self):
-        print('test_empty_input')
-        json_input = ''
-        expected_output = []
-        self.assertEqual(Base.from_json_string(json_input), expected_output)
+    def test_empty_list(self):
+        test_subject = json.dumps([])
+        self.assertEqual(Base.from_json_string(test_subject), [])
+        self.assertEqual(Base.from_json_string(test_subject), json.loads(test_subject))
+        self.assertEqual(Base.from_json_string('[]'), [])
 
-    def test_none_input(self):
-        print('test_none_input')
-        json_input = None
-        expected_output = []
-        self.assertEqual(Base.from_json_string(json_input), expected_output)
-        """ with self.assertRaises(TypeError):
-            Base.from_json_string(json_input) """
+    def test_none_as_value(self):
+        self.assertEqual(Base.from_json_string(None), [])
+
+    def test_large_list(self):
+        core = json.dumps([{"id": 1, "width": 10, "height": 7, "x": 2, "y": 8},
+                            {"id": 5, "width": 1, "height": 2, "x": 3, "y": 4}])
+        expected_output = [{"id": 1, "width": 10, "height": 7, "x": 2, "y": 8},
+                            {"id": 5, "width": 1, "height": 2, "x": 3, "y": 4}]
+        self.assertEqual(Base.from_json_string(core), expected_output)
 
 
 class TestCreate(unittest.TestCase):
-    def test_valid_input(self):
-        r1 = Rectangle(4, 6, 1, 2, 1)
-        r1_dictionary = r1.to_dictionary()
-        newInstance = Rectangle.create(**r1_dictionary)
-        assert newInstance.width == 4
-        assert newInstance.height == 6
-        assert newInstance.x == 1
-        assert newInstance.y == 2
-        assert newInstance.id == 1
-        self.assertIsNot(r1, newInstance)
-        self.assertNotEqual(r1, newInstance)
+    def test_create_with_rectangle(self):
+        a = Rectangle.create(id=0, width=3)
+        self.assertIsInstance(a, Rectangle)
+        self.assertEqual(a.id, 0)
+
+    def test_create_with_square(self):
+        test_value = Square(1, 2, 3, 4)
+        dict_test = test_value.to_dictionary()
+        new_value = Square.create(**dict_test)
+        self.assertIsInstance(new_value, Square)
+        self.assertEqual(new_value.to_dictionary(), test_value.to_dictionary())
+
+if __name__ == '__main__':
+    unittest.main()
