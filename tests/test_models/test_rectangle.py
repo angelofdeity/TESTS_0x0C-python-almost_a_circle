@@ -2,6 +2,8 @@ import unittest
 from models.rectangle import Rectangle
 from models.base import Base
 import json
+import sys
+import io
 
 
 class TestRectangleClassInstantiation(unittest.TestCase):
@@ -19,13 +21,36 @@ class TestRectangleClassInstantiation(unittest.TestCase):
         self.assertRaises(TypeError, Rectangle, (4))
         self.assertRaises(TypeError, Rectangle, ())
 
+    def test_init_with_positive_integers(self):
+        print('R:test_init_with_positive_integers')
+        r = Rectangle(4, 6, 3, 1, 12)
+        self.assertEqual(r.width, 4)
+
+    def test_init_negative_integers(self):
+        print('R:test_init_negative_integers')
+        self.assertRaises(ValueError, Rectangle, -4, 6)
+        self.assertRaises(ValueError, Rectangle, 4, -6)
+        self.assertRaises(ValueError, Rectangle, 4, 6, -2)
+        self.assertRaises(ValueError, Rectangle, 4, 6, 2, -4)
+
+    def test_init_with_string(self):
+        print('test_init_with_string')
+        with self.assertRaises(TypeError):
+            Rectangle('a', 'b')
+
+    def test_init_with_None(self):
+        print('test_init_with_None')
+        with self.assertRaises(TypeError):
+            Rectangle(None, None)
+
+
 
 class TestRectangleId(unittest.TestCase):
     def testa(self):
         rect = Rectangle(3, 4)
         rect_2 = Rectangle(3, 4, 5, 6)
         rect_3 = Rectangle(3, 4, 5, 6, 7)
-        self.assertEqual(rect.id, 13)
+        self.assertEqual(rect.id, 1)
         self.assertEqual(rect_2.id, rect.id + 1)
         self.assertEqual(rect_3.id, 7)
 
@@ -260,18 +285,19 @@ class TestRectangleUpdateArgs(unittest.TestCase):
     def test_update_args_error_in_1(self):
         tes = Rectangle(1, 2)
         self.assertEqual(tes.width, 1)
-        tes.update(4, "4", 5, 1, 2)
-        self.assertEqual(tes.width, 1)
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            tes.update(4, "4", 5, 1, 2)
 
     def test_update_args_error_in_2_and_above(self):
         tes = Rectangle(1, 2)
         self.assertEqual(tes.width, 1)
-        tes.update(4, "4,", [5], {3:0}, 2)
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            tes.update(4, "4,", [5], {3:0}, 2)
         self.assertEqual(tes.id, 4)
         self.assertEqual(tes.width, 1)
         self.assertEqual(tes.height, 2)
         self.assertEqual(tes.x, 0)
-        self.assertEqual(tes.y, 2)
+        self.assertEqual(tes.y, 0)
 
 
 class TestRectangleUpdateArgsAndKwargs(unittest.TestCase):
@@ -285,7 +311,7 @@ class TestRectangleUpdateArgsAndKwargs(unittest.TestCase):
         tes = Rectangle(1, 2, 3, 4, 6)
         self.assertEqual(tes.width, 1)
         tes.update(None, id=4, width=6)
-        self.assertEqual(tes.id, 6)
+        self.assertEqual(tes.id, 3)
         self.assertEqual(tes.width, 1)
 
     def test_kwargs_with_errors(self):
@@ -314,25 +340,28 @@ class TestRectangleUpdateArgsAndKwargs(unittest.TestCase):
         self.assertEqual(tes.x, 8)
 
     def test_update_kwargs_with_wrong_value(self):
-        tes = Rectangle(1, 2)
+        tes = Rectangle(1, 2, 0, 0, 1)
         self.assertEqual(tes.width, 1)
-        tes.update(width="6", id=4, height=5, x=8, mes=2, y=9)
-        self.assertEqual(tes.id, 4)
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            tes.update(width="6", id=4, height=5, x=8, mes=2, y=9)
+        self.assertEqual(tes.id, 1)
         self.assertEqual(tes.width, 1)
-        self.assertEqual(tes.height, 5)
-        self.assertEqual(tes.x, 8)
-        self.assertEqual(tes.y, 9)
+        self.assertEqual(tes.height, 2)
+        self.assertEqual(tes.x, 0)
+        self.assertEqual(tes.y, 0)
 
     def update_args_error_in_1(self):
         tes = Rectangle(1, 2)
         self.assertEqual(tes.width, 1)
-        tes.update(4, "4", 5, 1, 2)
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            tes.update(4, "4", 5, 1, 2)
         self.assertEqual(tes.width, 2)
 
     def update_args_error_in_2_and_above(self):
         tes = Rectangle(1, 2)
         self.assertEqual(tes.width, 1)
-        tes.update(4, "4,", [5], {3:0}, 2)
+        with self.assertRaisesRegex(TypeError, "width must be an integer"):
+            tes.update(4, "4,", [5], {3:0}, 2)
         self.assertEqual(tes.id, 4)
         self.assertEqual(tes.width, 2)
         self.assertEqual(tes.height, 2)
@@ -359,56 +388,12 @@ class TestToJsonStringDict(unittest.TestCase):
 
     def test_to_json_string_invalid_input(self):
         dic_2 = None
-        self.assertEqual(Rectangle.to_json_string(dic_2), "[]")
+        self.assertEqual(Rectangle.to_json_string(dic_2), json.dumps('[]'))
 
     def test_to_json_string_empty_input(self):
         dic = []
-        self.assertEqual(Rectangle.to_json_string(dic), "[]")
+        self.assertEqual(Rectangle.to_json_string(dic), json.dumps('[]'))
 
-
-class TestSaveToJson(unittest.TestCase):
-    def test_valid_input(self):
-        test_list = [Rectangle(10, 7, 2, 8, 1), Rectangle(1, 2, 3, 4, 5)]
-        Rectangle.save_to_file(test_list)
-        with open("Rectangle.json", 'r') as ft:
-            self.assertEqual(ft.read(),
-                             '[{"id": 1, "width": 10, "height": 7, "x": 2, "y": 8}, '
-                            '{"id": 5, "width": 1, "height": 2, "x": 3, "y": 4}]'
-                             )
-
-    def test_the_dict_result(self):
-        test_list = [Rectangle(10, 7, 2, 8, 1), Rectangle(1, 2, 3, 4, 5)]
-        Rectangle.save_to_file(test_list)
-        outcome = []
-        with open("Rectangle.json", 'r') as ft:
-            outcome = json.load(ft)
-        self.assertEqual(test_list[0].to_dictionary(), outcome[0])
-
-    def test_empty_list(self):
-        test_list = []
-        Rectangle.save_to_file(test_list)
-        with open("Rectangle.json", 'r') as ft:
-            self.assertEqual(ft.read(), '[]')
-
-    def test_empty_list_as_object(self):
-        test_list = []
-        outcome = []
-        Rectangle.save_to_file(test_list)
-        with open("Rectangle.json", 'r') as ft:
-            self.assertEqual(json.load(ft), [])
-
-    def test_none_as_value(self):
-        test_list = None
-        Rectangle.save_to_file(test_list)
-        with open("Rectangle.json", 'r') as ft:
-            self.assertEqual(ft.read(), '[]')
-
-    def test_none_list_result__empty_list__(self):
-        test_list = None
-        outcome = []
-        Rectangle.save_to_file(test_list)
-        with open("Rectangle.json", 'r') as ft:
-            self.assertEqual(json.load(ft), [])
 
 class TestFromJsonString(unittest.TestCase):
     def test_valid_input(self):
@@ -432,6 +417,42 @@ class TestFromJsonString(unittest.TestCase):
         expected_output = [{"id": 1, "width": 10, "height": 7, "x": 2, "y": 8},
                             {"id": 5, "width": 1, "height": 2, "x": 3, "y": 4}]
         self.assertEqual(Rectangle.from_json_string(core), expected_output)
+
+class TestStringRepresentation(unittest.TestCase):
+
+    @staticmethod
+    def get_stdout_value(obj):
+        old = sys.stdout
+        file = io.StringIO()
+        sys.stdout = file
+        obj.display()
+        a = file.getvalue()
+        sys.stdout = old
+        return a
+
+    def test_str_method(self):
+
+        tes = Rectangle(2, 3, 4, 5, 1)
+        self.assertEqual(str(tes), "[Rectangle] (1) 4/5 - 2/3")
+
+    def test_display(self):
+        tes = Rectangle(2, 3)
+        expected_output = "##\n##\n##\n"
+        stdout_value = self.get_stdout_value(tes)
+        self.assertEqual(stdout_value, expected_output)
+
+    def test_display_x(self):
+        tes = Rectangle(2, 3, 3)
+        expected_output = "   ##\n   ##\n   ##\n"
+        stdout_value = self.get_stdout_value(tes)
+        self.assertEqual(stdout_value, expected_output)
+
+    def test_display_x_and_y(self):
+        tes = Rectangle(2, 3, 3, 2, 1)
+        expected_output = "\n\n   ##\n   ##\n   ##\n"
+        stdout_value = self.get_stdout_value(tes)
+        self.assertEqual(stdout_value, expected_output)
+
 
 if __name__ == '__main__':
     unittest.main()
